@@ -12,6 +12,7 @@
       --neon-purple: #b400ff;
       --neon-yellow: #ffe600;
       --neon-green: #00ff88;
+      --neon-orange: #ff7700;
       --bg-dark: #04060f;
       --bg-card: #0a0d1a;
       --bg-card2: #0d0f22;
@@ -191,10 +192,11 @@
       box-shadow: 0 0 20px rgba(0,255,247,0.15);
     }
 
-    .filter-btn[data-cat="action"].active { border-color: var(--neon-pink); color: var(--neon-pink); background: rgba(255,0,110,0.06); }
-    .filter-btn[data-cat="puzzle"].active { border-color: var(--neon-purple); color: var(--neon-purple); background: rgba(180,0,255,0.06); }
+    .filter-btn[data-cat="action"].active   { border-color: var(--neon-pink);   color: var(--neon-pink);   background: rgba(255,0,110,0.06); }
+    .filter-btn[data-cat="puzzle"].active   { border-color: var(--neon-purple); color: var(--neon-purple); background: rgba(180,0,255,0.06); }
     .filter-btn[data-cat="strategy"].active { border-color: var(--neon-yellow); color: var(--neon-yellow); background: rgba(255,230,0,0.06); }
-    .filter-btn[data-cat="classic"].active { border-color: var(--neon-green); color: var(--neon-green); background: rgba(0,255,136,0.06); }
+    .filter-btn[data-cat="classic"].active  { border-color: var(--neon-green);  color: var(--neon-green);  background: rgba(0,255,136,0.06); }
+    .filter-btn[data-cat="story"].active    { border-color: var(--neon-orange); color: var(--neon-orange); background: rgba(255,119,0,0.06); }
 
     /* ── GAME GRID ── */
     .grid {
@@ -237,11 +239,6 @@
     .card:nth-child(13) { animation-delay: 0.26s; }
     .card:nth-child(14) { animation-delay: 0.28s; }
     .card:nth-child(15) { animation-delay: 0.30s; }
-    .card:nth-child(16) { animation-delay: 0.32s; }
-    .card:nth-child(17) { animation-delay: 0.34s; }
-    .card:nth-child(18) { animation-delay: 0.36s; }
-    .card:nth-child(19) { animation-delay: 0.38s; }
-    .card:nth-child(20) { animation-delay: 0.40s; }
 
     @keyframes cardIn {
       from { opacity: 0; transform: translateY(20px); }
@@ -253,10 +250,11 @@
     }
 
     /* glow colors per category */
-    .card[data-cat="classic"]:hover  { box-shadow: 0 0 40px rgba(0,255,136,0.25), 0 10px 40px rgba(0,0,0,0.5); border-color: rgba(0,255,136,0.4); }
-    .card[data-cat="action"]:hover   { box-shadow: 0 0 40px rgba(255,0,110,0.25), 0 10px 40px rgba(0,0,0,0.5); border-color: rgba(255,0,110,0.4); }
-    .card[data-cat="puzzle"]:hover   { box-shadow: 0 0 40px rgba(180,0,255,0.25), 0 10px 40px rgba(0,0,0,0.5); border-color: rgba(180,0,255,0.4); }
-    .card[data-cat="strategy"]:hover { box-shadow: 0 0 40px rgba(255,230,0,0.2), 0 10px 40px rgba(0,0,0,0.5);  border-color: rgba(255,230,0,0.4); }
+    .card[data-cat="classic"]:hover  { box-shadow: 0 0 40px rgba(0,255,136,0.25),  0 10px 40px rgba(0,0,0,0.5); border-color: rgba(0,255,136,0.4); }
+    .card[data-cat="action"]:hover   { box-shadow: 0 0 40px rgba(255,0,110,0.25),  0 10px 40px rgba(0,0,0,0.5); border-color: rgba(255,0,110,0.4); }
+    .card[data-cat="puzzle"]:hover   { box-shadow: 0 0 40px rgba(180,0,255,0.25),  0 10px 40px rgba(0,0,0,0.5); border-color: rgba(180,0,255,0.4); }
+    .card[data-cat="strategy"]:hover { box-shadow: 0 0 40px rgba(255,230,0,0.2),   0 10px 40px rgba(0,0,0,0.5); border-color: rgba(255,230,0,0.4); }
+    .card[data-cat="story"]:hover    { box-shadow: 0 0 40px rgba(255,119,0,0.25),  0 10px 40px rgba(0,0,0,0.5); border-color: rgba(255,119,0,0.4); }
 
     /* ── CARD PREVIEW (emoji icon area) ── */
     .card-preview {
@@ -273,12 +271,44 @@
     .card[data-cat="action"]   .card-preview { background: linear-gradient(135deg, #1a0010, #2a0020); }
     .card[data-cat="puzzle"]   .card-preview { background: linear-gradient(135deg, #0d0020, #1a0040); }
     .card[data-cat="strategy"] .card-preview { background: linear-gradient(135deg, #1a1500, #2a2200); }
+    .card[data-cat="story"]    .card-preview { background: linear-gradient(135deg, #1a0800, #2a1200); }
 
     .card-preview::after {
       content: '';
       position: absolute;
       inset: 0;
       background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 70%);
+    }
+
+    /* ── STORY CARD: FULL WIDTH, HORIZONTAL LAYOUT ── */
+    .card.card--story {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: row;
+    }
+
+    .card.card--story .card-preview {
+      width: 220px;
+      min-width: 220px;
+      height: auto;
+      flex-shrink: 0;
+      font-size: 80px;
+    }
+
+    .card.card--story .card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .card.card--story .card-title {
+      font-size: 22px;
+    }
+
+    .card.card--story .card-desc {
+      font-size: 14px;
+      max-width: 800px;
     }
 
     /* ── CATEGORY BADGE ── */
@@ -299,6 +329,7 @@
     .card[data-cat="action"]   .badge { background: rgba(255,0,110,0.15);  color: var(--neon-pink);   border: 1px solid rgba(255,0,110,0.3); }
     .card[data-cat="puzzle"]   .badge { background: rgba(180,0,255,0.15);  color: var(--neon-purple); border: 1px solid rgba(180,0,255,0.3); }
     .card[data-cat="strategy"] .badge { background: rgba(255,230,0,0.12);  color: var(--neon-yellow); border: 1px solid rgba(255,230,0,0.3); }
+    .card[data-cat="story"]    .badge { background: rgba(255,119,0,0.12);  color: var(--neon-orange); border: 1px solid rgba(255,119,0,0.3); }
 
     /* ── CARD BODY ── */
     .card-body {
@@ -365,11 +396,13 @@
     .card[data-cat="action"]   .play-btn { border: 1px solid var(--neon-pink);   color: var(--neon-pink); }
     .card[data-cat="puzzle"]   .play-btn { border: 1px solid var(--neon-purple); color: var(--neon-purple); }
     .card[data-cat="strategy"] .play-btn { border: 1px solid var(--neon-yellow); color: var(--neon-yellow); }
+    .card[data-cat="story"]    .play-btn { border: 1px solid var(--neon-orange); color: var(--neon-orange); }
 
     .card[data-cat="classic"]:hover  .play-btn { background: rgba(0,255,136,0.15); box-shadow: 0 0 15px rgba(0,255,136,0.3); }
     .card[data-cat="action"]:hover   .play-btn { background: rgba(255,0,110,0.15); box-shadow: 0 0 15px rgba(255,0,110,0.3); }
     .card[data-cat="puzzle"]:hover   .play-btn { background: rgba(180,0,255,0.15); box-shadow: 0 0 15px rgba(180,0,255,0.3); }
     .card[data-cat="strategy"]:hover .play-btn { background: rgba(255,230,0,0.12); box-shadow: 0 0 15px rgba(255,230,0,0.25); }
+    .card[data-cat="story"]:hover    .play-btn { background: rgba(255,119,0,0.12); box-shadow: 0 0 15px rgba(255,119,0,0.25); }
 
     /* ── CARD HOVER SCAN LINE ── */
     .card::before {
@@ -443,10 +476,25 @@
     <button class="filter-btn" data-cat="action">Action</button>
     <button class="filter-btn" data-cat="puzzle">Puzzle</button>
     <button class="filter-btn" data-cat="strategy">Strategy</button>
+    <button class="filter-btn" data-cat="story">Story</button>
   </div>
 
   <!-- GAME GRID -->
   <div class="grid" id="grid">
+
+    <!-- STORY — FULL WIDTH, FIRST TILE -->
+    <a class="card card--story" data-cat="story" href="games/storygame.html">
+      <div class="card-preview">📖<span class="badge">Story</span></div>
+      <div class="card-body">
+        <div class="card-num">00 / 20</div>
+        <div class="card-title">Story Game</div>
+        <div class="card-desc">Every choice shapes the world. Navigate branching narratives, uncover hidden endings, and discover that the real game was the story you built along the way.</div>
+        <div class="card-footer">
+          <span class="diff">Medium <span class="dots">●●●○○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
 
     <!-- CLASSICS -->
     <a class="card" data-cat="classic" href="games/snake.html">
@@ -594,9 +642,6 @@
       </div>
     </a>
 
-
-
-    
     <a class="card" data-cat="puzzle" href="games/sudoku/index.html">
       <div class="card-preview">🔷<span class="badge">Puzzle</span></div>
       <div class="card-body">
@@ -609,11 +654,6 @@
         </div>
       </div>
     </a>
-
-  
-
-    
-
 
   </div>
 
