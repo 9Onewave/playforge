@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Type Racer — PlayForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--surface:#080d14;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
+header{width:100%;max-width:700px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:30px}
+.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.back-btn:hover{background:rgba(0,255,231,0.1)}
+.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
+.hud{display:flex;gap:30px;margin-bottom:20px;font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--text-dim)}
+.hud-val{font-size:1.6rem;color:var(--cyan);text-shadow:0 0 10px var(--cyan);display:block}
+#text-display{width:700px;max-width:95vw;background:var(--surface);border:1px solid var(--border);padding:24px;font-family:'Rajdhani',sans-serif;font-size:1.3rem;line-height:1.8;letter-spacing:.04em;min-height:100px;border-radius:0}
+.char{color:var(--text-dim)}
+.char.correct{color:#00ffe7}
+.char.wrong{color:#ff0044;background:rgba(255,0,68,0.15)}
+.char.cursor{border-left:2px solid #00ffe7;animation:blink .6s steps(1) infinite}
+@keyframes blink{50%{border-color:transparent}}
+#input-box{width:700px;max-width:95vw;margin-top:12px;background:transparent;border:1px solid var(--border);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:1.1rem;padding:14px;outline:none;letter-spacing:.05em}
+#input-box:focus{border-color:var(--cyan);box-shadow:0 0 15px rgba(0,255,231,0.1)}
+.progress-bar{width:700px;max-width:95vw;height:4px;background:var(--border);margin-top:10px}
+.progress-fill{height:100%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);transition:width .1s;width:0%}
+.btn{font-family:var(--font-display);font-size:0.7rem;letter-spacing:.15em;padding:12px 32px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);margin-top:16px}
+.btn:hover{background:rgba(0,255,231,0.15)}
+#result-panel{display:none;text-align:center;margin-top:20px}
+#result-panel h2{font-family:var(--font-display);font-size:2rem;color:var(--cyan);text-shadow:0 0 20px var(--cyan);margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<header>
+  <a href="../../index.html" class="back-btn">← BACK</a>
+  <span class="game-title">TYPE RACER</span>
+</header>
+<div class="hud">
+  <div>WPM<span class="hud-val" id="wpm">0</span></div>
+  <div>ACC<span class="hud-val" id="acc">100%</span></div>
+  <div>TIME<span class="hud-val" id="timer">60</span></div>
+  <div>BEST WPM<span class="hud-val" id="best">0</span></div>
+</div>
+<div id="text-display"></div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+<input id="input-box" placeholder="Click here and start typing..." autocomplete="off" spellcheck="false"/>
+<div id="result-panel">
+  <h2 id="result-wpm"></h2>
+  <p style="color:var(--text-dim);font-family:var(--font-display);font-size:0.7rem;letter-spacing:.2em" id="result-detail"></p>
+</div>
+<button class="btn" onclick="newGame()">NEW RACE</button>
+
+<script>
+const QUOTES=[
+  "The quick brown fox jumps over the lazy dog near the riverbank at dawn.",
+  "In a world of algorithms and circuits, human creativity remains the ultimate superpower.",
+  "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+  "The grid never sleeps. Neither does the hacker who understands it completely.",
+  "Code is poetry written in a language that machines can finally understand and execute.",
+  "Two roads diverged in a digital forest, and I took the one less compiled.",
+  "Every great developer you know got there by solving problems they were unqualified to solve.",
+  "The best way to predict the future is to build it with your own two hands today.",
+  "Move fast, break things, fix them faster, and always write tests for the good parts.",
+  "Neon lights flicker in the rain as data streams pulse through fiber optic veins underground.",
+];
+let quote,typed=[],start=null,timer=null,timeLeft=60,errors=0,best=0,running=false;
+
+function newGame(){
+  quote=QUOTES[Math.floor(Math.random()*QUOTES.length)].split('');
+  typed=[];errors=0;timeLeft=60;running=false;start=null;
+  clearInterval(timer);
+  document.getElementById('wpm').textContent='0';
+  document.getElementById('acc').textContent='100%';
+  document.getElementById('timer').textContent='60';
+  document.getElementById('progress').style.width='0%';
+  document.getElementById('result-panel').style.display='none';
+  document.getElementById('input-box').value='';
+  document.getElementById('input-box').focus();
+  renderText();
+}
+
+function renderText(){
+  const display=document.getElementById('text-display');
+  display.innerHTML=quote.map((ch,i)=>{
+    let cls='char';
+    if(i<typed.length)cls+=typed[i]===ch?' correct':' wrong';
+    if(i===typed.length)cls+=' cursor';
+    return`<span class="${cls}">${ch==' '?'&nbsp;':ch}</span>`;
+  }).join('');
+}
+
+document.getElementById('input-box').addEventListener('input',e=>{
+  const val=e.target.value;
+  if(!running){running=true;start=Date.now();timer=setInterval(tick,1000);}
+  typed=val.split('');
+  errors=typed.filter((c,i)=>c!==quote[i]).length;
+  const correct=typed.filter((c,i)=>c===quote[i]).length;
+  const acc=typed.length?Math.round((correct/typed.length)*100):100;
+  document.getElementById('acc').textContent=acc+'%';
+  const mins=(Date.now()-start)/60000;
+  const wpm=mins>0?Math.round((correct/5)/mins):0;
+  document.getElementById('wpm').textContent=wpm;
+  document.getElementById('progress').style.width=(typed.length/quote.length*100)+'%';
+  renderText();
+  if(typed.length>=quote.length&&errors===0)endGame();
+});
+
+function tick(){
+  timeLeft--;document.getElementById('timer').textContent=timeLeft;
+  if(timeLeft<=0)endGame();
+}
+
+function endGame(){
+  clearInterval(timer);running=false;
+  const mins=(60-timeLeft+0.001)/60;
+  const correct=typed.filter((c,i)=>c===quote[i]).length;
+  const wpm=Math.round((correct/5)/mins);
+  best=Math.max(best,wpm);document.getElementById('best').textContent=best;
+  document.getElementById('result-panel').style.display='block';
+  document.getElementById('result-wpm').textContent=wpm+' WPM';
+  const acc=typed.length?Math.round(correct/typed.length*100):0;
+  document.getElementById('result-detail').textContent=`ACCURACY: ${acc}% | ERRORS: ${errors}`;
+  document.getElementById('input-box').blur();
+}
+
+newGame();
+</script>
+</body>
+</html>

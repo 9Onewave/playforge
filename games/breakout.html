@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Breakout — PlayForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
+header{width:100%;max-width:600px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:30px}
+.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.back-btn:hover{background:rgba(0,255,231,0.1)}
+.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
+.score-box{margin-left:auto;font-family:var(--font-display);font-size:0.7rem;letter-spacing:.1em;color:var(--cyan);text-align:right}
+canvas{display:block;border:1px solid var(--border);box-shadow:0 0 30px rgba(0,255,231,0.15);cursor:none}
+.info{margin-top:16px;font-size:0.8rem;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+.btn{font-family:var(--font-display);font-size:0.7rem;letter-spacing:.15em;padding:12px 32px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;transition:all .2s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);margin-top:16px}
+.btn:hover{background:rgba(0,255,231,0.15)}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<header>
+  <a href="../../index.html" class="back-btn">← BACK</a>
+  <span class="game-title">BREAKOUT</span>
+  <div class="score-box">SCORE<br><span id="score">0</span><br>LIVES<br><span id="lives">3</span></div>
+</header>
+<canvas id="c" width="600" height="500"></canvas>
+<div class="info">MOVE MOUSE TO AIM &nbsp;|&nbsp; CLICK TO LAUNCH</div>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const W=600,H=500,ROWS=6,COLS=10,PAD_W=90,PAD_H=12,BALL_R=8;
+const COLORS=['#ff0044','#ff6600','#ffff00','#00ff88','#00ffe7','#ff00ff'];
+let paddle,ball,bricks,score,lives,launched,animId;
+
+function init(){
+  paddle={x:W/2-PAD_W/2,y:H-30};
+  ball={x:W/2,y:H-50,vx:0,vy:0};
+  score=0;lives=3;launched=false;
+  bricks=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
+    bricks.push({x:c*58+12,y:r*28+40,w:54,h:22,color:COLORS[r],alive:true});
+  document.getElementById('score').textContent=0;
+  document.getElementById('lives').textContent=3;
+}
+
+canvas.addEventListener('mousemove',e=>{
+  const rect=canvas.getBoundingClientRect();
+  paddle.x=Math.max(0,Math.min(W-PAD_W,(e.clientX-rect.left)-PAD_W/2));
+  if(!launched){ball.x=paddle.x+PAD_W/2;}
+});
+
+canvas.addEventListener('click',()=>{
+  if(!launched){launched=true;ball.vx=(Math.random()-0.5)*8;ball.vy=-7;}
+});
+
+function update(){
+  if(!launched)return;
+  ball.x+=ball.vx;ball.y+=ball.vy;
+  if(ball.x-BALL_R<=0||ball.x+BALL_R>=W)ball.vx*=-1;
+  if(ball.y-BALL_R<=0)ball.vy*=-1;
+  if(ball.y+BALL_R>=H){lives--;document.getElementById('lives').textContent=lives;
+    if(lives<=0){cancelAnimationFrame(animId);endScreen('GAME OVER');return;}
+    launched=false;ball.vx=0;ball.vy=0;ball.y=H-50;ball.x=paddle.x+PAD_W/2;}
+  // paddle
+  if(ball.y+BALL_R>=paddle.y&&ball.y-BALL_R<=paddle.y+PAD_H&&ball.x>=paddle.x&&ball.x<=paddle.x+PAD_W){
+    ball.vy=-Math.abs(ball.vy);ball.vx+=((ball.x-(paddle.x+PAD_W/2))/PAD_W)*5;}
+  // bricks
+  bricks.forEach(b=>{
+    if(!b.alive)return;
+    if(ball.x>b.x&&ball.x<b.x+b.w&&ball.y-BALL_R<b.y+b.h&&ball.y+BALL_R>b.y){
+      b.alive=false;ball.vy*=-1;score+=10;document.getElementById('score').textContent=score;
+    }
+  });
+  if(bricks.every(b=>!b.alive)){cancelAnimationFrame(animId);endScreen('YOU WIN!');}
+}
+
+function endScreen(msg){
+  ctx.fillStyle='rgba(2,4,8,0.8)';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#00ffe7';ctx.shadowColor='#00ffe7';ctx.shadowBlur=30;
+  ctx.font='bold 36px Orbitron';ctx.textAlign='center';
+  ctx.fillText(msg,W/2,H/2-20);ctx.shadowBlur=0;
+  ctx.fillStyle='#4a6070';ctx.font='14px Orbitron';
+  ctx.fillText('Score: '+score,W/2,H/2+15);
+  ctx.fillText('Click to restart',W/2,H/2+45);
+  canvas.onclick=()=>{init();canvas.onclick=()=>{if(!launched){launched=true;ball.vx=(Math.random()-0.5)*8;ball.vy=-7;}};animId=requestAnimationFrame(frame);}
+}
+
+function draw(){
+  ctx.fillStyle='#020408';ctx.fillRect(0,0,W,H);
+  bricks.forEach(b=>{
+    if(!b.alive)return;
+    ctx.fillStyle=b.color;ctx.shadowColor=b.color;ctx.shadowBlur=8;
+    ctx.fillRect(b.x,b.y,b.w,b.h);
+    ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(b.x,b.y,b.w,4);
+    ctx.shadowBlur=0;
+  });
+  ctx.fillStyle='#00ffe7';ctx.shadowColor='#00ffe7';ctx.shadowBlur=15;
+  ctx.fillRect(paddle.x,paddle.y,PAD_W,PAD_H);ctx.shadowBlur=0;
+  ctx.beginPath();ctx.arc(ball.x,ball.y,BALL_R,0,Math.PI*2);
+  ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=20;ctx.fill();ctx.shadowBlur=0;
+  if(!launched){ctx.fillStyle='rgba(0,255,231,0.5)';ctx.font='12px Orbitron';ctx.textAlign='center';ctx.fillText('CLICK TO LAUNCH',W/2,H/2);}
+}
+
+function frame(){update();draw();animId=requestAnimationFrame(frame);}
+init();frame();
+</script>
+</body>
+</html>

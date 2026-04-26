@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Flappy — PlayForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
+header{width:100%;max-width:400px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:30px}
+.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.back-btn:hover{background:rgba(0,255,231,0.1)}
+.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
+canvas{display:block;border:1px solid var(--border);box-shadow:0 0 30px rgba(0,255,231,0.15);cursor:pointer}
+.info{margin-top:16px;font-size:0.8rem;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<header>
+  <a href="../../index.html" class="back-btn">← BACK</a>
+  <span class="game-title">FLAPPY</span>
+</header>
+<canvas id="c" width="400" height="550"></canvas>
+<div class="info">CLICK OR SPACE TO FLAP</div>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const W=400,H=550,GAP=140,PIPE_W=52,PIPE_SPEED=2.8,GRAV=0.45,FLAP=-8;
+let bird,pipes,score,best=0,state='idle',animId;
+
+function init(){
+  bird={x:80,y:H/2,vy:0,r:14};
+  pipes=[];score=0;
+  for(let i=0;i<3;i++)pipes.push(makePipe(W+i*220));
+}
+
+function makePipe(x){const top=80+Math.random()*(H-GAP-160);return{x,top,scored:false}}
+
+function flap(){
+  if(state==='idle'){state='playing';init();bird.vy=FLAP;return;}
+  if(state==='dead'){state='playing';init();return;}
+  bird.vy=FLAP;
+}
+
+function update(){
+  bird.vy+=GRAV;bird.y+=bird.vy;
+  if(bird.y-bird.r<=0){bird.y=bird.r;bird.vy=0;}
+  if(bird.y+bird.r>=H){die();return;}
+  pipes.forEach(p=>{p.x-=PIPE_SPEED;
+    if(p.x+PIPE_W<bird.x-bird.r&&!p.scored){p.scored=true;score++;best=Math.max(best,score);}
+    if(bird.x+bird.r>p.x&&bird.x-bird.r<p.x+PIPE_W){if(bird.y-bird.r<p.top||bird.y+bird.r>p.top+GAP)die();}
+  });
+  pipes=pipes.map(p=>p.x+PIPE_W<0?makePipe(p.x+660):p);
+}
+
+function die(){state='dead';}
+
+function draw(){
+  // bg
+  ctx.fillStyle='#020408';ctx.fillRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle='rgba(0,255,231,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=0;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  // pipes
+  pipes.forEach(p=>{
+    ctx.fillStyle='#00ff88';ctx.shadowColor='#00ff88';ctx.shadowBlur=12;
+    ctx.fillRect(p.x,0,PIPE_W,p.top);
+    ctx.fillRect(p.x,p.top+GAP,PIPE_W,H-p.top-GAP);
+    // pipe caps
+    ctx.fillStyle='#00cc66';ctx.shadowBlur=0;
+    ctx.fillRect(p.x-4,p.top-18,PIPE_W+8,18);
+    ctx.fillRect(p.x-4,p.top+GAP,PIPE_W+8,18);
+    ctx.shadowBlur=0;
+  });
+  // bird
+  const bx=bird.x,by=bird.y,r=bird.r;
+  ctx.save();ctx.translate(bx,by);ctx.rotate(Math.min(Math.PI/4,bird.vy*0.05));
+  ctx.fillStyle='#ffff00';ctx.shadowColor='#ffff00';ctx.shadowBlur=20;
+  ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#ff6600';ctx.beginPath();ctx.moveTo(r*0.5,-r*0.3);ctx.lineTo(r*1.3,0);ctx.lineTo(r*0.5,r*0.3);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#020408';ctx.beginPath();ctx.arc(r*0.3,-r*0.3,r*0.2,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  // score
+  ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=10;
+  ctx.font='bold 32px Orbitron';ctx.textAlign='center';ctx.fillText(score,W/2,50);ctx.shadowBlur=0;
+  ctx.fillStyle='#4a6070';ctx.font='11px Orbitron';ctx.fillText('BEST: '+best,W/2,70);
+  if(state==='idle'){
+    ctx.fillStyle='rgba(2,4,8,0.6)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#00ffe7';ctx.shadowColor='#00ffe7';ctx.shadowBlur=20;
+    ctx.font='bold 28px Orbitron';ctx.fillText('FLAPPY',W/2,H/2-30);ctx.shadowBlur=0;
+    ctx.fillStyle='#4a6070';ctx.font='13px Orbitron';ctx.fillText('CLICK OR SPACE TO START',W/2,H/2+10);
+  }
+  if(state==='dead'){
+    ctx.fillStyle='rgba(2,4,8,0.7)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#ff0044';ctx.shadowColor='#ff0044';ctx.shadowBlur=20;
+    ctx.font='bold 28px Orbitron';ctx.textAlign='center';ctx.fillText('DEAD',W/2,H/2-30);ctx.shadowBlur=0;
+    ctx.fillStyle='#c8d8e8';ctx.font='14px Orbitron';ctx.fillText('SCORE: '+score,W/2,H/2+10);
+    ctx.fillStyle='#4a6070';ctx.font='12px Orbitron';ctx.fillText('CLICK TO RETRY',W/2,H/2+40);
+  }
+}
+
+function frame(){
+  if(state==='playing')update();
+  draw();requestAnimationFrame(frame);
+}
+
+canvas.addEventListener('click',flap);
+document.addEventListener('keydown',e=>{if(e.code==='Space'){flap();e.preventDefault();}});
+init();frame();
+</script>
+</body>
+</html>

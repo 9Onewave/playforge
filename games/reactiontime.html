@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Reaction — PlayForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
+header{width:100%;max-width:600px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:40px}
+.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.back-btn:hover{background:rgba(0,255,231,0.1)}
+.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
+#arena{width:500px;height:300px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:background .1s;position:relative;overflow:hidden}
+#arena.wait{background:#080d14}
+#arena.ready{background:rgba(255,0,68,0.08);border-color:#ff0044}
+#arena.go{background:rgba(0,255,231,0.08);border-color:#00ffe7;box-shadow:0 0 40px rgba(0,255,231,0.2)}
+#arena.early{background:rgba(255,102,0,0.08);border-color:#ff6600}
+#status{font-family:var(--font-display);font-size:2rem;font-weight:900;letter-spacing:.2em;text-align:center}
+#sub{font-family:var(--font-display);font-size:0.75rem;letter-spacing:.2em;color:var(--text-dim);margin-top:10px;text-align:center}
+#result{font-family:var(--font-display);font-size:3.5rem;font-weight:900;color:var(--cyan);text-shadow:0 0 30px var(--cyan);margin-top:8px;min-height:60px;text-align:center}
+.scores{display:flex;gap:30px;margin-top:30px;font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--text-dim)}
+.scores span{display:block;font-size:1.4rem;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
+.history{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:500px}
+.hist-bar{width:30px;background:var(--border);position:relative;border-radius:2px;overflow:hidden}
+.hist-fill{position:absolute;bottom:0;width:100%;background:var(--cyan);transition:height .3s}
+.info{margin-top:20px;font-size:0.75rem;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<header>
+  <a href="../../index.html" class="back-btn">← BACK</a>
+  <span class="game-title">REACTION TIME</span>
+</header>
+<div id="arena" onclick="handleClick()">
+  <div id="status" style="color:#4a6070">CLICK TO START</div>
+  <div id="sub">Test your reaction speed</div>
+  <div id="result"></div>
+</div>
+<div class="scores">
+  <div>LAST<span id="last">—</span></div>
+  <div>BEST<span id="best">—</span></div>
+  <div>AVG<span id="avg">—</span></div>
+  <div>ATTEMPTS<span id="attempts">0</span></div>
+</div>
+<div class="history" id="history"></div>
+<div class="info">CLICK THE BOX WHEN IT TURNS CYAN &nbsp;|&nbsp; DON'T CLICK TOO EARLY</div>
+
+<script>
+let state='idle',startTime,timeout,results=[],best=Infinity;
+const arena=document.getElementById('arena');
+
+function handleClick(){
+  if(state==='idle'||state==='result'||state==='early'){startRound();return;}
+  if(state==='waiting'){
+    clearTimeout(timeout);state='early';
+    arena.className='early';
+    document.getElementById('status').style.color='#ff6600';
+    document.getElementById('status').textContent='TOO EARLY!';
+    document.getElementById('sub').textContent='Wait for cyan — click to retry';
+    document.getElementById('result').textContent='';
+    return;
+  }
+  if(state==='go'){
+    const rt=Date.now()-startTime;
+    results.push(rt);if(results.length>10)results.shift();
+    best=Math.min(best,rt);
+    const avg=Math.round(results.reduce((a,b)=>a+b,0)/results.length);
+    document.getElementById('last').textContent=rt+'ms';
+    document.getElementById('best').textContent=best+'ms';
+    document.getElementById('avg').textContent=avg+'ms';
+    document.getElementById('attempts').textContent=results.length;
+    const grade=rt<150?'INHUMAN':rt<200?'ELITE':rt<250?'FAST':rt<300?'GOOD':rt<400?'AVERAGE':'SLOW';
+    const color=rt<200?'#00ff88':rt<300?'#00ffe7':rt<400?'#ffff00':'#ff6600';
+    arena.className='result';
+    document.getElementById('status').style.color=color;
+    document.getElementById('status').textContent=grade;
+    document.getElementById('sub').textContent='Click to try again';
+    document.getElementById('result').style.color=color;
+    document.getElementById('result').style.textShadow='0 0 30px '+color;
+    document.getElementById('result').textContent=rt+'ms';
+    state='result';
+    renderHistory();
+  }
+}
+
+function startRound(){
+  state='waiting';arena.className='wait';
+  document.getElementById('status').style.color='#ff0044';
+  document.getElementById('status').textContent='WAIT...';
+  document.getElementById('sub').textContent='Click when it turns CYAN';
+  document.getElementById('result').textContent='';
+  const delay=1000+Math.random()*3000;
+  timeout=setTimeout(()=>{
+    state='go';arena.className='go';
+    document.getElementById('status').style.color='#00ffe7';
+    document.getElementById('status').textContent='NOW!';
+    startTime=Date.now();
+  },delay);
+}
+
+function renderHistory(){
+  const h=document.getElementById('history');h.innerHTML='';
+  const max=Math.max(...results,500);
+  results.forEach(r=>{
+    const wrap=document.createElement('div');wrap.className='hist-bar';wrap.style.height='60px';
+    const fill=document.createElement('div');fill.className='hist-fill';
+    fill.style.height=Math.round((r/max)*100)+'%';
+    fill.style.background=r<200?'#00ff88':r<300?'#00ffe7':r<400?'#ffff00':'#ff6600';
+    wrap.title=r+'ms';wrap.appendChild(fill);h.appendChild(wrap);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pong — PlayForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
+header{width:100%;max-width:700px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:30px}
+.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.back-btn:hover{background:rgba(0,255,231,0.1)}
+.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
+canvas{display:block;border:1px solid var(--border);box-shadow:0 0 30px rgba(0,255,231,0.15)}
+.info{margin-top:16px;font-size:0.8rem;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+.btn{font-family:var(--font-display);font-size:0.7rem;letter-spacing:.15em;padding:12px 32px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;transition:all .2s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);margin-top:16px}
+.btn:hover{background:rgba(0,255,231,0.15)}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<header>
+  <a href="../../index.html" class="back-btn">← BACK</a>
+  <span class="game-title">PONG</span>
+</header>
+<canvas id="c" width="700" height="450"></canvas>
+<div class="info">W / S — MOVE YOUR PADDLE &nbsp;|&nbsp; FIRST TO 7 WINS</div>
+<button class="btn" onclick="startGame()">START GAME</button>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const W=700,H=450,PAD_H=80,PAD_W=12,BALL_S=10;
+let p1,p2,ball,s1,s2,running=false,keys={};
+
+function reset(){
+  p1={x:20,y:H/2-PAD_H/2};
+  p2={x:W-20-PAD_W,y:H/2-PAD_H/2};
+  ball={x:W/2,y:H/2,vx:(Math.random()>0.5?1:-1)*5,vy:(Math.random()-0.5)*6};
+}
+
+function startGame(){
+  s1=0;s2=0;reset();running=true;requestAnimationFrame(loop);
+}
+
+function loop(){
+  if(!running)return;
+  update();draw();requestAnimationFrame(loop);
+}
+
+function update(){
+  if(keys['w']&&p1.y>0)p1.y-=6;
+  if(keys['s']&&p1.y<H-PAD_H)p1.y+=6;
+  // AI
+  const aim=ball.y-PAD_H/2;
+  if(p2.y<aim&&p2.y<H-PAD_H)p2.y+=4.5;
+  if(p2.y>aim&&p2.y>0)p2.y-=4.5;
+  ball.x+=ball.vx;ball.y+=ball.vy;
+  if(ball.y<=0||ball.y>=H-BALL_S){ball.vy*=-1;ball.y=ball.y<=0?0:H-BALL_S}
+  // paddle collisions
+  if(ball.x<=p1.x+PAD_W&&ball.x>=p1.x&&ball.y+BALL_S>=p1.y&&ball.y<=p1.y+PAD_H){
+    ball.vx=Math.abs(ball.vx)*1.05;ball.vy+=((ball.y+BALL_S/2)-(p1.y+PAD_H/2))*0.15;ball.x=p1.x+PAD_W;
+  }
+  if(ball.x+BALL_S>=p2.x&&ball.x+BALL_S<=p2.x+PAD_W&&ball.y+BALL_S>=p2.y&&ball.y<=p2.y+PAD_H){
+    ball.vx=-Math.abs(ball.vx)*1.05;ball.vy+=((ball.y+BALL_S/2)-(p2.y+PAD_H/2))*0.15;ball.x=p2.x-BALL_S;
+  }
+  ball.vx=Math.max(-12,Math.min(12,ball.vx));
+  ball.vy=Math.max(-10,Math.min(10,ball.vy));
+  if(ball.x<0){s2++;checkWin()||(reset());}
+  if(ball.x>W){s1++;checkWin()||(reset());}
+}
+
+function checkWin(){
+  if(s1>=7||s2>=7){running=false;return true;}return false;
+}
+
+function draw(){
+  ctx.fillStyle='#020408';ctx.fillRect(0,0,W,H);
+  // centre line
+  ctx.setLineDash([10,10]);ctx.strokeStyle='rgba(0,255,231,0.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.setLineDash([]);
+  // scores
+  ctx.fillStyle='#00ffe7';ctx.font='bold 48px Orbitron';ctx.textAlign='center';
+  ctx.shadowColor='#00ffe7';ctx.shadowBlur=20;
+  ctx.fillText(s1,W/2-100,60);ctx.fillText(s2,W/2+100,60);ctx.shadowBlur=0;
+  // paddles
+  [p1,p2].forEach((p,i)=>{
+    ctx.fillStyle=i===0?'#00ffe7':'#ff00ff';
+    ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=15;
+    ctx.fillRect(p.x,p.y,PAD_W,PAD_H);ctx.shadowBlur=0;
+  });
+  // ball
+  ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=20;
+  ctx.fillRect(ball.x,ball.y,BALL_S,BALL_S);ctx.shadowBlur=0;
+  if(!running&&(s1>=7||s2>=7)){
+    ctx.fillStyle='rgba(2,4,8,0.7)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#00ffe7';ctx.shadowColor='#00ffe7';ctx.shadowBlur=30;
+    ctx.font='bold 36px Orbitron';ctx.textAlign='center';
+    ctx.fillText(s1>=7?'YOU WIN!':'AI WINS',W/2,H/2-20);ctx.shadowBlur=0;
+    ctx.fillStyle='#4a6070';ctx.font='14px Orbitron';
+    ctx.fillText('Click START GAME to retry',W/2,H/2+20);
+  }
+}
+
+document.addEventListener('keydown',e=>{keys[e.key]=true;e.preventDefault();});
+document.addEventListener('keyup',e=>{keys[e.key]=false;});
+draw();
+</script>
+</body>
+</html>

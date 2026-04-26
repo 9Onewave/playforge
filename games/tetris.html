@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tetris — PlayForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--surface:#080d14;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
+header{width:100%;max-width:600px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:30px}
+.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.back-btn:hover{background:rgba(0,255,231,0.1)}
+.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
+.score-box{margin-left:auto;font-family:var(--font-display);font-size:0.7rem;letter-spacing:.1em;color:var(--cyan);text-align:right}
+.layout{display:flex;gap:20px;align-items:flex-start}
+canvas{display:block;border:1px solid var(--border);box-shadow:0 0 30px rgba(0,255,231,0.15)}
+.sidebar{display:flex;flex-direction:column;gap:16px;min-width:120px}
+.side-box{border:1px solid var(--border);padding:14px;background:var(--surface)}
+.side-label{font-family:var(--font-display);font-size:0.55rem;letter-spacing:.2em;color:var(--text-dim);margin-bottom:8px}
+.side-val{font-family:var(--font-display);font-size:1.4rem;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
+.info{margin-top:16px;font-size:0.8rem;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+.btn{font-family:var(--font-display);font-size:0.7rem;letter-spacing:.15em;padding:12px 24px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;transition:all .2s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);width:100%}
+.btn:hover{background:rgba(0,255,231,0.15)}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<header>
+  <a href="../../index.html" class="back-btn">← BACK</a>
+  <span class="game-title">TETRIS</span>
+</header>
+<div class="layout">
+  <canvas id="c" width="300" height="600"></canvas>
+  <div class="sidebar">
+    <div class="side-box"><div class="side-label">SCORE</div><div class="side-val" id="score">0</div></div>
+    <div class="side-box"><div class="side-label">LEVEL</div><div class="side-val" id="level">1</div></div>
+    <div class="side-box"><div class="side-label">LINES</div><div class="side-val" id="lines">0</div></div>
+    <div class="side-box"><div class="side-label">NEXT</div><canvas id="next" width="100" height="80"></canvas></div>
+    <button class="btn" id="startBtn" onclick="startGame()">START</button>
+  </div>
+</div>
+<div class="info">← → MOVE &nbsp;|&nbsp; ↑ ROTATE &nbsp;|&nbsp; ↓ SOFT DROP &nbsp;|&nbsp; SPACE HARD DROP</div>
+
+<script>
+const COLS=10,ROWS=20,SZ=30;
+const PIECES=[
+  {shape:[[1,1,1,1]],color:'#00ffe7'},
+  {shape:[[1,1],[1,1]],color:'#ffff00'},
+  {shape:[[0,1,0],[1,1,1]],color:'#ff00ff'},
+  {shape:[[1,0,0],[1,1,1]],color:'#ff6600'},
+  {shape:[[0,0,1],[1,1,1]],color:'#00ff88'},
+  {shape:[[1,1,0],[0,1,1]],color:'#ff0044'},
+  {shape:[[0,1,1],[1,1,0]],color:'#00aaff'},
+];
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const nc=document.getElementById('next'),nctx=nc.getContext('2d');
+let board,piece,next,score,level,lines,loop,running=false;
+
+function newBoard(){return Array.from({length:ROWS},()=>Array(COLS).fill(0))}
+function rnd(){return PIECES[Math.floor(Math.random()*PIECES.length)]}
+function newPiece(p){return{shape:p.shape.map(r=>[...r]),color:p.color,x:Math.floor(COLS/2)-Math.floor(p.shape[0].length/2),y:0}}
+
+function startGame(){
+  board=newBoard();score=0;level=1;lines=0;
+  next=rnd();piece=newPiece(rnd());
+  running=true;
+  document.getElementById('startBtn').textContent='RESTART';
+  clearInterval(loop);loop=setInterval(tick,speed());
+  update();draw();
+}
+
+function speed(){return Math.max(100,600-level*50)}
+
+function tick(){
+  if(!move(0,1)){lock();clearLines();spawnPiece();}
+  draw();
+}
+
+function move(dx,dy){
+  piece.x+=dx;piece.y+=dy;
+  if(collide()){piece.x-=dx;piece.y-=dy;return false;}
+  return true;
+}
+
+function rotate(){
+  const orig=piece.shape;
+  piece.shape=piece.shape[0].map((_,i)=>piece.shape.map(r=>r[i]).reverse());
+  if(collide())piece.shape=orig;
+}
+
+function collide(){
+  return piece.shape.some((row,dy)=>row.some((v,dx)=>v&&(piece.y+dy>=ROWS||piece.x+dx<0||piece.x+dx>=COLS||(board[piece.y+dy]&&board[piece.y+dy][piece.x+dx]))));
+}
+
+function lock(){
+  piece.shape.forEach((row,dy)=>row.forEach((v,dx)=>{if(v)board[piece.y+dy][piece.x+dx]=piece.color}));
+}
+
+function clearLines(){
+  let cleared=0;
+  for(let y=ROWS-1;y>=0;y--){
+    if(board[y].every(c=>c)){board.splice(y,1);board.unshift(Array(COLS).fill(0));cleared++;y++;}
+  }
+  if(cleared){lines+=cleared;score+=cleared*100*level;level=Math.floor(lines/10)+1;
+    clearInterval(loop);loop=setInterval(tick,speed());update();}
+}
+
+function spawnPiece(){
+  piece=newPiece(next);next=rnd();
+  if(collide()){running=false;clearInterval(loop);
+    ctx.fillStyle='rgba(2,4,8,0.8)';ctx.fillRect(0,200,300,200);
+    ctx.fillStyle='#00ffe7';ctx.font='bold 24px Orbitron';ctx.textAlign='center';
+    ctx.fillText('GAME OVER',150,280);ctx.font='14px Orbitron';ctx.fillStyle='#4a6070';
+    ctx.fillText('Score: '+score,150,310);ctx.fillText('Click START to retry',150,340);}
+  drawNext();
+}
+
+function update(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('level').textContent=level;
+  document.getElementById('lines').textContent=lines;
+}
+
+function drawNext(){
+  nctx.fillStyle='#020408';nctx.fillRect(0,0,100,80);
+  const s=next.shape,ox=Math.floor((4-s[0].length)/2)*16,oy=Math.floor((4-s.length)/2)*16;
+  s.forEach((row,dy)=>row.forEach((v,dx)=>{
+    if(v){nctx.fillStyle=next.color;nctx.shadowColor=next.color;nctx.shadowBlur=8;
+      nctx.fillRect(ox+dx*20+2,oy+dy*20+10,18,18);nctx.shadowBlur=0;}
+  }));
+}
+
+function draw(){
+  ctx.fillStyle='#020408';ctx.fillRect(0,0,300,600);
+  ctx.strokeStyle='rgba(15,30,46,0.5)';ctx.lineWidth=0.5;
+  for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*SZ,0);ctx.lineTo(x*SZ,600);ctx.stroke()}
+  for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*SZ);ctx.lineTo(300,y*SZ);ctx.stroke()}
+  board.forEach((row,y)=>row.forEach((color,x)=>{
+    if(color){ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=6;
+      ctx.fillRect(x*SZ+1,y*SZ+1,SZ-2,SZ-2);ctx.shadowBlur=0;}
+  }));
+  // ghost
+  let ghost=0;while(!collide()){piece.y++;ghost++;}piece.y-=ghost;
+  piece.shape.forEach((row,dy)=>row.forEach((v,dx)=>{
+    if(v){ctx.fillStyle='rgba(0,255,231,0.1)';ctx.fillRect((piece.x+dx)*SZ+1,(piece.y+ghost+dy)*SZ+1,SZ-2,SZ-2);}
+  }));
+  piece.shape.forEach((row,dy)=>row.forEach((v,dx)=>{
+    if(v){ctx.fillStyle=piece.color;ctx.shadowColor=piece.color;ctx.shadowBlur=12;
+      ctx.fillRect((piece.x+dx)*SZ+1,(piece.y+dy)*SZ+1,SZ-2,SZ-2);ctx.shadowBlur=0;}
+  }));
+}
+
+document.addEventListener('keydown',e=>{
+  if(!running)return;
+  if(e.key==='ArrowLeft')move(-1,0);
+  else if(e.key==='ArrowRight')move(1,0);
+  else if(e.key==='ArrowDown')move(0,1);
+  else if(e.key==='ArrowUp')rotate();
+  else if(e.key===' '){while(move(0,1));tick();}
+  else return;
+  e.preventDefault();draw();
+});
+
+draw();
+</script>
+</body>
+</html>

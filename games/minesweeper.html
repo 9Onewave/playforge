@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Minesweeper — PlayForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--surface:#080d14;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
+header{width:100%;max-width:520px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:30px}
+.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.back-btn:hover{background:rgba(0,255,231,0.1)}
+.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
+.hud{display:flex;gap:20px;margin-bottom:16px;font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--text-dim)}
+.hud span{color:var(--cyan)}
+#board{display:grid;grid-template-columns:repeat(16,32px);gap:2px;background:var(--border);padding:2px;border:1px solid var(--border)}
+.cell{width:32px;height:32px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:0.65rem;font-weight:700;cursor:pointer;border:1px solid #0f1e2e;transition:background .1s;user-select:none}
+.cell:hover{background:#0d1a26}
+.cell.revealed{background:#020408;border-color:#050a10;cursor:default}
+.cell.flagged{background:rgba(255,0,68,0.1);border-color:#ff0044}
+.cell.mine{background:rgba(255,0,68,0.3);border-color:#ff0044}
+.n1{color:#00ffe7}.n2{color:#00ff88}.n3{color:#ff0044}.n4{color:#ff00ff}.n5{color:#ff6600}.n6{color:#ffff00}.n7{color:#fff}.n8{color:#888}
+.info{margin-top:16px;font-size:0.75rem;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+.btn{font-family:var(--font-display);font-size:0.7rem;letter-spacing:.15em;padding:10px 24px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);margin-top:12px}
+.btn:hover{background:rgba(0,255,231,0.1)}
+#msg{font-family:var(--font-display);font-size:1rem;letter-spacing:.2em;margin-top:14px;min-height:24px;text-align:center}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<header>
+  <a href="../../index.html" class="back-btn">← BACK</a>
+  <span class="game-title">MINESWEEPER</span>
+</header>
+<div class="hud">MINES: <span id="mcount">40</span> &nbsp;|&nbsp; TIME: <span id="timer">0</span>s &nbsp;|&nbsp; FLAGS: <span id="flags">0</span></div>
+<div id="board"></div>
+<div id="msg"></div>
+<button class="btn" onclick="init()">NEW GAME</button>
+<div class="info">LEFT CLICK — REVEAL &nbsp;|&nbsp; RIGHT CLICK — FLAG</div>
+
+<script>
+const ROWS=16,COLS=16,MINES=40;
+let grid,revealed,flagged,gameOver,first,timerInt,time,flagCount;
+
+function init(){
+  clearInterval(timerInt);time=0;flagCount=0;gameOver=false;first=true;
+  document.getElementById('timer').textContent=0;
+  document.getElementById('flags').textContent=0;
+  document.getElementById('msg').textContent='';
+  grid=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  revealed=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+  flagged=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+  render();
+}
+
+function placeMines(sr,sc){
+  let placed=0;
+  while(placed<MINES){const r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);
+    if(grid[r][c]===-1||(Math.abs(r-sr)<=1&&Math.abs(c-sc)<=1))continue;
+    grid[r][c]=-1;placed++;}
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    if(grid[r][c]===-1)continue;
+    let n=0;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const nr=r+dr,nc=c+dc;if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&grid[nr][nc]===-1)n++;}
+    grid[r][c]=n;}
+}
+
+function reveal(r,c){
+  if(r<0||r>=ROWS||c<0||c>=COLS||revealed[r][c]||flagged[r][c])return;
+  revealed[r][c]=true;
+  if(grid[r][c]===0)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)reveal(r+dr,c+dc);
+}
+
+function click(r,c){
+  if(gameOver||flagged[r][c]||revealed[r][c])return;
+  if(first){first=false;placeMines(r,c);timerInt=setInterval(()=>{time++;document.getElementById('timer').textContent=time;},1000);}
+  if(grid[r][c]===-1){gameOver=true;clearInterval(timerInt);
+    for(let i=0;i<ROWS;i++)for(let j=0;j<COLS;j++)if(grid[i][j]===-1)revealed[i][j]=true;
+    render();document.getElementById('msg').style.color='#ff0044';document.getElementById('msg').textContent='💥 DETONATED';return;}
+  reveal(r,c);
+  const total=ROWS*COLS,revCount=revealed.flat().filter(Boolean).length;
+  if(revCount===total-MINES){gameOver=true;clearInterval(timerInt);
+    document.getElementById('msg').style.color='#00ffe7';document.getElementById('msg').textContent='✓ FIELD CLEARED — '+time+'s';}
+  render();
+}
+
+function flag(e,r,c){e.preventDefault();if(gameOver||revealed[r][c])return;
+  flagged[r][c]=!flagged[r][c];flagCount+=flagged[r][c]?1:-1;
+  document.getElementById('flags').textContent=flagCount;render();}
+
+function render(){
+  const board=document.getElementById('board');board.innerHTML='';
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const cell=document.createElement('div');cell.className='cell';
+    if(flagged[r][c]&&!revealed[r][c]){cell.textContent='🚩';cell.classList.add('flagged');}
+    else if(!revealed[r][c]){cell.classList.add('hidden');}
+    else if(grid[r][c]===-1){cell.textContent='💣';cell.classList.add('mine','revealed');}
+    else{cell.classList.add('revealed');if(grid[r][c]>0){cell.textContent=grid[r][c];cell.classList.add('n'+grid[r][c]);}}
+    const _r=r,_c=c;cell.onclick=()=>click(_r,_c);cell.oncontextmenu=e=>flag(e,_r,_c);
+    board.appendChild(cell);
+  }
+}
+init();
+</script>
+</body>
+</html>

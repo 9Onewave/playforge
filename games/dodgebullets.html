@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dodge — PlayForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
+header{width:100%;max-width:500px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:30px}
+.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.back-btn:hover{background:rgba(0,255,231,0.1)}
+.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
+canvas{display:block;border:1px solid var(--border);box-shadow:0 0 30px rgba(0,255,231,0.15)}
+.info{margin-top:16px;font-size:0.8rem;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<header>
+  <a href="../../index.html" class="back-btn">← BACK</a>
+  <span class="game-title">DODGE</span>
+</header>
+<canvas id="c" width="500" height="500"></canvas>
+<div class="info">ARROW KEYS / WASD TO DODGE &nbsp;|&nbsp; SURVIVE AS LONG AS POSSIBLE</div>
+
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+const W=500,H=500,SPEED=3.5,PR=10;
+let player,bullets,time,best=0,spawnRate,state='idle',keys={},animId,lastSpawn;
+
+function init(){
+  player={x:W/2,y:H/2,r:PR};
+  bullets=[];time=0;spawnRate=1200;lastSpawn=0;state='playing';
+}
+
+function update(ts){
+  time+=16;
+  // move
+  let dx=0,dy=0;
+  if(keys['ArrowLeft']||keys['a'])dx-=SPEED;
+  if(keys['ArrowRight']||keys['d'])dx+=SPEED;
+  if(keys['ArrowUp']||keys['w'])dy-=SPEED;
+  if(keys['ArrowDown']||keys['s'])dy+=SPEED;
+  if(dx&&dy){dx*=0.707;dy*=0.707;}
+  player.x=Math.max(PR,Math.min(W-PR,player.x+dx));
+  player.y=Math.max(PR,Math.min(H-PR,player.y+dy));
+  // spawn
+  spawnRate=Math.max(300,1200-Math.floor(time/3000)*80);
+  if(ts-lastSpawn>spawnRate){lastSpawn=ts;spawnBullet();}
+  // bullets
+  bullets.forEach(b=>{b.x+=b.vx;b.y+=b.vy});
+  bullets=bullets.filter(b=>b.x>-30&&b.x<W+30&&b.y>-30&&b.y<H+30);
+  // collision
+  bullets.forEach(b=>{const dx=b.x-player.x,dy=b.y-player.y;if(Math.sqrt(dx*dx+dy*dy)<PR+b.r){die();}});
+}
+
+function spawnBullet(){
+  const side=Math.floor(Math.random()*4);
+  let x,y,tx,ty;
+  if(side===0){x=Math.random()*W;y=-20;tx=Math.random()*W;ty=H+20;}
+  else if(side===1){x=Math.random()*W;y=H+20;tx=Math.random()*W;ty=-20;}
+  else if(side===2){x=-20;y=Math.random()*H;tx=W+20;ty=Math.random()*H;}
+  else{x=W+20;y=Math.random()*H;tx=-20;ty=Math.random()*H;}
+  const len=Math.sqrt((tx-x)**2+(ty-y)**2);
+  const spd=2+Math.random()*3;
+  bullets.push({x,y,vx:(tx-x)/len*spd,vy:(ty-y)/len*spd,r:6,color:Math.random()>0.5?'#ff0044':'#ff6600'});
+}
+
+function die(){
+  state='dead';best=Math.max(best,Math.floor(time/1000));
+}
+
+function draw(){
+  ctx.fillStyle='#020408';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(0,255,231,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  bullets.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=b.color;ctx.shadowColor=b.color;ctx.shadowBlur=15;ctx.fill();ctx.shadowBlur=0;});
+  // player
+  ctx.beginPath();ctx.arc(player.x,player.y,PR,0,Math.PI*2);
+  ctx.fillStyle='#00ffe7';ctx.shadowColor='#00ffe7';ctx.shadowBlur=25;ctx.fill();ctx.shadowBlur=0;
+  // time
+  const secs=Math.floor(time/1000);
+  ctx.fillStyle='#fff';ctx.font='bold 24px Orbitron';ctx.textAlign='center';ctx.shadowColor='#fff';ctx.shadowBlur=10;
+  ctx.fillText(secs+'s',W/2,36);ctx.shadowBlur=0;
+  ctx.fillStyle='#4a6070';ctx.font='11px Orbitron';ctx.fillText('BEST: '+best+'s',W/2,55);
+  if(state==='idle'){
+    ctx.fillStyle='rgba(2,4,8,0.7)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#00ffe7';ctx.shadowColor='#00ffe7';ctx.shadowBlur=20;
+    ctx.font='bold 28px Orbitron';ctx.textAlign='center';ctx.fillText('DODGE',W/2,H/2-20);ctx.shadowBlur=0;
+    ctx.fillStyle='#4a6070';ctx.font='13px Orbitron';ctx.fillText('PRESS ANY ARROW KEY TO START',W/2,H/2+20);
+  }
+  if(state==='dead'){
+    ctx.fillStyle='rgba(2,4,8,0.75)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#ff0044';ctx.shadowColor='#ff0044';ctx.shadowBlur=20;
+    ctx.font='bold 28px Orbitron';ctx.textAlign='center';ctx.fillText('ELIMINATED',W/2,H/2-30);ctx.shadowBlur=0;
+    ctx.fillStyle='#c8d8e8';ctx.font='16px Orbitron';ctx.fillText('SURVIVED: '+Math.floor(time/1000)+'s',W/2,H/2+10);
+    ctx.fillStyle='#4a6070';ctx.font='12px Orbitron';ctx.fillText('PRESS ANY KEY TO RETRY',W/2,H/2+45);
+  }
+}
+
+function frame(ts){draw();if(state==='playing')update(ts);requestAnimationFrame(frame);}
+
+document.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(state==='idle'||state==='dead')init();
+  e.preventDefault();
+});
+document.addEventListener('keyup',e=>{keys[e.key]=false;});
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

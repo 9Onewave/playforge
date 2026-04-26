@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PlayForge — Neon Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --neon-cyan: #00fff7;
+      --neon-pink: #ff006e;
+      --neon-purple: #b400ff;
+      --neon-yellow: #ffe600;
+      --neon-green: #00ff88;
+      --bg-dark: #04060f;
+      --bg-card: #0a0d1a;
+      --bg-card2: #0d0f22;
+      --border-dim: rgba(0,255,247,0.15);
+      --text-main: #c8d8f0;
+      --text-dim: #5a6a8a;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── SCANLINES OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.18) 2px,
+        rgba(0,0,0,0.18) 4px
+      );
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* ── GRID BACKGROUND ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,247,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,247,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 70px 20px 50px;
+    }
+
+    .logo-wrap {
+      position: relative;
+      display: inline-block;
+    }
+
+    .logo-eyebrow {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      letter-spacing: 8px;
+      color: var(--neon-cyan);
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(48px, 10vw, 96px);
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 50%, var(--neon-pink) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 30px rgba(0,255,247,0.4));
+      animation: titlePulse 4s ease-in-out infinite;
+    }
+
+    @keyframes titlePulse {
+      0%, 100% { filter: drop-shadow(0 0 30px rgba(0,255,247,0.4)); }
+      50% { filter: drop-shadow(0 0 60px rgba(180,0,255,0.6)); }
+    }
+
+    .logo-sub {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      letter-spacing: 6px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+
+    .logo-sub span { color: var(--neon-pink); }
+
+    /* ── HEADER DECORATIVE LINES ── */
+    .header-line {
+      width: 200px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+      margin: 20px auto;
+      animation: linePulse 3s ease-in-out infinite;
+    }
+
+    @keyframes linePulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      flex-wrap: wrap;
+      padding: 0 20px 50px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ── FILTER TABS ── */
+    .filters {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 0 20px 50px;
+    }
+
+    .filter-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 8px 20px;
+      border: 1px solid var(--border-dim);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.3s;
+      clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      background: rgba(0,255,247,0.06);
+      box-shadow: 0 0 20px rgba(0,255,247,0.15);
+    }
+
+    .filter-btn[data-cat="action"].active { border-color: var(--neon-pink); color: var(--neon-pink); background: rgba(255,0,110,0.06); }
+    .filter-btn[data-cat="puzzle"].active { border-color: var(--neon-purple); color: var(--neon-purple); background: rgba(180,0,255,0.06); }
+    .filter-btn[data-cat="strategy"].active { border-color: var(--neon-yellow); color: var(--neon-yellow); background: rgba(255,230,0,0.06); }
+    .filter-btn[data-cat="classic"].active { border-color: var(--neon-green); color: var(--neon-green); background: rgba(0,255,136,0.06); }
+
+    /* ── GAME GRID ── */
+    .grid {
+      position: relative;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 0 40px 80px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* ── GAME CARD ── */
+    .card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s;
+      clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+      animation: cardIn 0.5s ease both;
+      text-decoration: none;
+      display: block;
+    }
+
+    .card:nth-child(1)  { animation-delay: 0.02s; }
+    .card:nth-child(2)  { animation-delay: 0.04s; }
+    .card:nth-child(3)  { animation-delay: 0.06s; }
+    .card:nth-child(4)  { animation-delay: 0.08s; }
+    .card:nth-child(5)  { animation-delay: 0.10s; }
+    .card:nth-child(6)  { animation-delay: 0.12s; }
+    .card:nth-child(7)  { animation-delay: 0.14s; }
+    .card:nth-child(8)  { animation-delay: 0.16s; }
+    .card:nth-child(9)  { animation-delay: 0.18s; }
+    .card:nth-child(10) { animation-delay: 0.20s; }
+    .card:nth-child(11) { animation-delay: 0.22s; }
+    .card:nth-child(12) { animation-delay: 0.24s; }
+    .card:nth-child(13) { animation-delay: 0.26s; }
+    .card:nth-child(14) { animation-delay: 0.28s; }
+    .card:nth-child(15) { animation-delay: 0.30s; }
+    .card:nth-child(16) { animation-delay: 0.32s; }
+    .card:nth-child(17) { animation-delay: 0.34s; }
+    .card:nth-child(18) { animation-delay: 0.36s; }
+    .card:nth-child(19) { animation-delay: 0.38s; }
+    .card:nth-child(20) { animation-delay: 0.40s; }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card:hover {
+      transform: translateY(-6px) scale(1.01);
+    }
+
+    /* glow colors per category */
+    .card[data-cat="classic"]:hover  { box-shadow: 0 0 40px rgba(0,255,136,0.25), 0 10px 40px rgba(0,0,0,0.5); border-color: rgba(0,255,136,0.4); }
+    .card[data-cat="action"]:hover   { box-shadow: 0 0 40px rgba(255,0,110,0.25), 0 10px 40px rgba(0,0,0,0.5); border-color: rgba(255,0,110,0.4); }
+    .card[data-cat="puzzle"]:hover   { box-shadow: 0 0 40px rgba(180,0,255,0.25), 0 10px 40px rgba(0,0,0,0.5); border-color: rgba(180,0,255,0.4); }
+    .card[data-cat="strategy"]:hover { box-shadow: 0 0 40px rgba(255,230,0,0.2), 0 10px 40px rgba(0,0,0,0.5);  border-color: rgba(255,230,0,0.4); }
+
+    /* ── CARD PREVIEW (emoji icon area) ── */
+    .card-preview {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card[data-cat="classic"]  .card-preview { background: linear-gradient(135deg, #001a0d, #002a1a); }
+    .card[data-cat="action"]   .card-preview { background: linear-gradient(135deg, #1a0010, #2a0020); }
+    .card[data-cat="puzzle"]   .card-preview { background: linear-gradient(135deg, #0d0020, #1a0040); }
+    .card[data-cat="strategy"] .card-preview { background: linear-gradient(135deg, #1a1500, #2a2200); }
+
+    .card-preview::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 70%);
+    }
+
+    /* ── CATEGORY BADGE ── */
+    .badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      z-index: 2;
+      clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+    }
+
+    .card[data-cat="classic"]  .badge { background: rgba(0,255,136,0.15);  color: var(--neon-green);  border: 1px solid rgba(0,255,136,0.3); }
+    .card[data-cat="action"]   .badge { background: rgba(255,0,110,0.15);  color: var(--neon-pink);   border: 1px solid rgba(255,0,110,0.3); }
+    .card[data-cat="puzzle"]   .badge { background: rgba(180,0,255,0.15);  color: var(--neon-purple); border: 1px solid rgba(180,0,255,0.3); }
+    .card[data-cat="strategy"] .badge { background: rgba(255,230,0,0.12);  color: var(--neon-yellow); border: 1px solid rgba(255,230,0,0.3); }
+
+    /* ── CARD BODY ── */
+    .card-body {
+      padding: 18px 20px 20px;
+    }
+
+    .card-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .card-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #e8f0ff;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .card-desc {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-dim);
+      padding-top: 12px;
+    }
+
+    .diff {
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .diff .dots { letter-spacing: 0; }
+
+    .play-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.3s;
+      clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+      border: none;
+      pointer-events: none;
+    }
+
+    .card[data-cat="classic"]  .play-btn { border: 1px solid var(--neon-green);  color: var(--neon-green); }
+    .card[data-cat="action"]   .play-btn { border: 1px solid var(--neon-pink);   color: var(--neon-pink); }
+    .card[data-cat="puzzle"]   .play-btn { border: 1px solid var(--neon-purple); color: var(--neon-purple); }
+    .card[data-cat="strategy"] .play-btn { border: 1px solid var(--neon-yellow); color: var(--neon-yellow); }
+
+    .card[data-cat="classic"]:hover  .play-btn { background: rgba(0,255,136,0.15); box-shadow: 0 0 15px rgba(0,255,136,0.3); }
+    .card[data-cat="action"]:hover   .play-btn { background: rgba(255,0,110,0.15); box-shadow: 0 0 15px rgba(255,0,110,0.3); }
+    .card[data-cat="puzzle"]:hover   .play-btn { background: rgba(180,0,255,0.15); box-shadow: 0 0 15px rgba(180,0,255,0.3); }
+    .card[data-cat="strategy"]:hover .play-btn { background: rgba(255,230,0,0.12); box-shadow: 0 0 15px rgba(255,230,0,0.25); }
+
+    /* ── CARD HOVER SCAN LINE ── */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 60%;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.03), transparent);
+      transition: top 0.5s ease;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .card:hover::before { top: 150%; }
+
+    /* ── HIDDEN CLASS ── */
+    .card.hidden {
+      display: none;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 30px 20px 50px;
+      border-top: 1px solid var(--border-dim);
+    }
+
+    footer p {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    footer span { color: var(--neon-pink); }
+
+    /* ── CURSOR ── */
+    body { cursor: crosshair; }
+    .card { cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-wrap">
+      <div class="logo-eyebrow">9onewave presents</div>
+      <h1>PLAYFORGE</h1>
+      <div class="logo-sub">Browser Game Hub &nbsp;/&nbsp; <span>20 Games</span> &nbsp;/&nbsp; No Download</div>
+    </div>
+    <div class="header-line"></div>
+  </header>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-num">20</span><span class="stat-label">Games</span></div>
+    <div class="stat"><span class="stat-num">4</span><span class="stat-label">Categories</span></div>
+    <div class="stat"><span class="stat-num">0</span><span class="stat-label">Downloads</span></div>
+    <div class="stat"><span class="stat-num">∞</span><span class="stat-label">Hours Lost</span></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <button class="filter-btn active" data-cat="all">All Games</button>
+    <button class="filter-btn" data-cat="classic">Classic</button>
+    <button class="filter-btn" data-cat="action">Action</button>
+    <button class="filter-btn" data-cat="puzzle">Puzzle</button>
+    <button class="filter-btn" data-cat="strategy">Strategy</button>
+  </div>
+
+  <!-- GAME GRID -->
+  <div class="grid" id="grid">
+
+    <!-- CLASSICS -->
+    <a class="card" data-cat="classic" href="games/snake.html">
+      <div class="card-preview">🐍<span class="badge">Classic</span></div>
+      <div class="card-body">
+        <div class="card-num">01 / 20</div>
+        <div class="card-title">Snake</div>
+        <div class="card-desc">Eat, grow, don't crash. The original endless grind. How long can you keep going?</div>
+        <div class="card-footer">
+          <span class="diff">Easy <span class="dots">●●○○○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <a class="card" data-cat="classic" href="games/tetris.html">
+      <div class="card-preview">🟦<span class="badge">Classic</span></div>
+      <div class="card-body">
+        <div class="card-num">02 / 20</div>
+        <div class="card-title">Tetris</div>
+        <div class="card-desc">Stack blocks, clear lines, fight the speed. A timeless battle against your own brain.</div>
+        <div class="card-footer">
+          <span class="diff">Medium <span class="dots">●●●○○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <a class="card" data-cat="classic" href="games/pong.html">
+      <div class="card-preview">🏓<span class="badge">Classic</span></div>
+      <div class="card-body">
+        <div class="card-num">03 / 20</div>
+        <div class="card-title">Pong</div>
+        <div class="card-desc">The game that started it all. Two paddles, one ball. First to 7 wins.</div>
+        <div class="card-footer">
+          <span class="diff">Easy <span class="dots">●●○○○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <a class="card" data-cat="classic" href="games/breakout.html">
+      <div class="card-preview">🧱<span class="badge">Classic</span></div>
+      <div class="card-body">
+        <div class="card-num">04 / 20</div>
+        <div class="card-title">Breakout</div>
+        <div class="card-desc">Smash every brick off the wall. Keep the ball alive or start over. Ruthlessly addictive.</div>
+        <div class="card-footer">
+          <span class="diff">Medium <span class="dots">●●●○○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <a class="card" data-cat="classic" href="games/minesweeper.html">
+      <div class="card-preview">💣<span class="badge">Classic</span></div>
+      <div class="card-body">
+        <div class="card-num">05 / 20</div>
+        <div class="card-title">Minesweeper</div>
+        <div class="card-desc">Logic vs luck. Read the numbers, flag the mines, clear the board without going boom.</div>
+        <div class="card-footer">
+          <span class="diff">Hard <span class="dots">●●●●○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <!-- ACTION -->
+    <a class="card" data-cat="action" href="games/flappybird.html">
+      <div class="card-preview">🐦<span class="badge">Action</span></div>
+      <div class="card-body">
+        <div class="card-num">06 / 20</div>
+        <div class="card-title">Flappy Bird</div>
+        <div class="card-desc">One tap. One gap. Zero mercy. The game that broke a million phones is back.</div>
+        <div class="card-footer">
+          <span class="diff">Brutal <span class="dots">●●●●●</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <a class="card" data-cat="action" href="games/whackamole.html">
+      <div class="card-preview">🔨<span class="badge">Action</span></div>
+      <div class="card-body">
+        <div class="card-num">07 / 20</div>
+        <div class="card-title">Whack-a-Mole</div>
+        <div class="card-desc">Moles pop up, you smash them. Sounds easy. At level 3 you'll question your reflexes.</div>
+        <div class="card-footer">
+          <span class="diff">Easy <span class="dots">●●○○○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <a class="card" data-cat="action" href="games/dodgebullets.html">
+      <div class="card-preview">🚀<span class="badge">Action</span></div>
+      <div class="card-body">
+        <div class="card-num">08 / 20</div>
+        <div class="card-title">Dodge Bullets</div>
+        <div class="card-desc">Move. Survive. Everything is trying to kill you. Don't stop, don't think, just dodge.</div>
+        <div class="card-footer">
+          <span class="diff">Hard <span class="dots">●●●●○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <a class="card" data-cat="action" href="games/reactiontime.html">
+      <div class="card-preview">⚡<span class="badge">Action</span></div>
+      <div class="card-body">
+        <div class="card-num">09 / 20</div>
+        <div class="card-title">Reaction Time</div>
+        <div class="card-desc">Click the moment it goes green. Measure your raw reflexes. Compete against yourself.</div>
+        <div class="card-footer">
+          <span class="diff">Easy <span class="dots">●○○○○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <a class="card" data-cat="action" href="games/typeracer.html">
+      <div class="card-preview">⌨️<span class="badge">Action</span></div>
+      <div class="card-body">
+        <div class="card-num">10 / 20</div>
+        <div class="card-title">Type Racer</div>
+        <div class="card-desc">Type fast. Type accurate. Beat the clock. Your WPM score doesn't lie.</div>
+        <div class="card-footer">
+          <span class="diff">Medium <span class="dots">●●●○○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+    <!-- PUZZLE -->
+    <a class="card" data-cat="puzzle" href="games/2048.html">
+      <div class="card-preview">🔢<span class="badge">Puzzle</span></div>
+      <div class="card-body">
+        <div class="card-num">11 / 20</div>
+        <div class="card-title">2048</div>
+        <div class="card-desc">Merge tiles, chase the number. Every move matters. Every game is a fresh obsession.</div>
+        <div class="card-footer">
+          <span class="diff">Medium <span class="dots">●●●○○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+
+
+    
+    <a class="card" data-cat="puzzle" href="games/sudoku/index.html">
+      <div class="card-preview">🔷<span class="badge">Puzzle</span></div>
+      <div class="card-body">
+        <div class="card-num">14 / 20</div>
+        <div class="card-title">Sudoku</div>
+        <div class="card-desc">Fill the grid. No repeats. No guessing (well, maybe a little). Logic at its purest.</div>
+        <div class="card-footer">
+          <span class="diff">Hard <span class="dots">●●●●○</span></span>
+          <button class="play-btn">Play →</button>
+        </div>
+      </div>
+    </a>
+
+  
+
+    
+
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Built with <span>♥</span> by 9Onewave &nbsp;·&nbsp; PlayForge &nbsp;·&nbsp; All games run in your browser</p>
+  </footer>
+
+  <script>
+    // ── FILTER LOGIC ──
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const cards = document.querySelectorAll('.card');
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cat = btn.dataset.cat;
+
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        cards.forEach(card => {
+          if (cat === 'all' || card.dataset.cat === cat) {
+            card.classList.remove('hidden');
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+      });
+    });
+
+    // ── CARD HOVER SOUND (subtle visual pulse on click) ──
+    cards.forEach(card => {
+      card.addEventListener('mouseenter', () => {
+        card.style.setProperty('--pulse', '1');
+      });
+    });
+
+    // ── ANIMATED COUNTER FOR STATS ──
+    function animateCount(el, target, suffix = '') {
+      let start = 0;
+      const duration = 1200;
+      const step = target / (duration / 16);
+      const timer = setInterval(() => {
+        start = Math.min(start + step, target);
+        el.textContent = (target === Infinity ? '∞' : Math.floor(start)) + suffix;
+        if (start >= target) clearInterval(timer);
+      }, 16);
+    }
+
+    window.addEventListener('load', () => {
+      const nums = document.querySelectorAll('.stat-num');
+      animateCount(nums[0], 20);
+      animateCount(nums[1], 4);
+      animateCount(nums[2], 0);
+      // leave ∞ as-is
+    });
+  </script>
+</body>
+</html>

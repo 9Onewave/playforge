@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>2048 — PlayForge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020408;--surface:#080d14;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
+header{width:100%;max-width:460px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:24px}
+.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+.back-btn:hover{background:rgba(0,255,231,0.1)}
+.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
+.hud{display:flex;gap:16px;margin-bottom:16px}
+.box{background:var(--surface);border:1px solid var(--border);padding:10px 20px;text-align:center;font-family:var(--font-display);font-size:0.6rem;letter-spacing:.15em;color:var(--text-dim)}
+.box span{display:block;font-size:1.4rem;color:var(--cyan);text-shadow:0 0 10px var(--cyan)}
+#board{display:grid;grid-template-columns:repeat(4,105px);grid-template-rows:repeat(4,105px);gap:8px;background:#0a1520;padding:8px;border:1px solid var(--border)}
+.tile{display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;border-radius:2px;transition:all .1s;animation:pop .15s ease}
+@keyframes pop{0%{transform:scale(0.8)}100%{transform:scale(1)}}
+.tile-0{background:#080d14}
+.tile-2{background:#0d1e2e;color:#00ffe7;font-size:2rem;box-shadow:inset 0 0 15px rgba(0,255,231,0.1)}
+.tile-4{background:#0d2a1e;color:#00ff88;font-size:2rem;box-shadow:inset 0 0 15px rgba(0,255,136,0.1)}
+.tile-8{background:#1a1a00;color:#ffff00;font-size:2rem;box-shadow:inset 0 0 15px rgba(255,255,0,0.1)}
+.tile-16{background:#1a0d00;color:#ff6600;font-size:1.6rem;box-shadow:inset 0 0 15px rgba(255,102,0,0.2)}
+.tile-32{background:#200010;color:#ff00ff;font-size:1.6rem;box-shadow:inset 0 0 20px rgba(255,0,255,0.2)}
+.tile-64{background:#200008;color:#ff0044;font-size:1.6rem;box-shadow:inset 0 0 20px rgba(255,0,68,0.3)}
+.tile-128{background:#1a1a00;color:#ffff00;font-size:1.3rem;box-shadow:0 0 20px rgba(255,255,0,0.3)}
+.tile-256{background:#1a0d00;color:#ff6600;font-size:1.2rem;box-shadow:0 0 25px rgba(255,102,0,0.4)}
+.tile-512{background:#200020;color:#ff00ff;font-size:1.2rem;box-shadow:0 0 25px rgba(255,0,255,0.4)}
+.tile-1024{background:#200010;color:#ff0044;font-size:1rem;box-shadow:0 0 30px rgba(255,0,68,0.5)}
+.tile-2048{background:#002020;color:#00ffe7;font-size:1rem;box-shadow:0 0 40px rgba(0,255,231,0.8);animation:glow 1s ease infinite alternate}
+@keyframes glow{from{box-shadow:0 0 20px rgba(0,255,231,0.5)}to{box-shadow:0 0 60px rgba(0,255,231,1)}}
+.btn{font-family:var(--font-display);font-size:0.7rem;letter-spacing:.15em;padding:10px 24px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);margin-top:14px}
+.btn:hover{background:rgba(0,255,231,0.15)}
+.info{margin-top:12px;font-size:0.75rem;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<header>
+  <a href="../../index.html" class="back-btn">← BACK</a>
+  <span class="game-title">2048</span>
+</header>
+<div class="hud">
+  <div class="box">SCORE<span id="score">0</span></div>
+  <div class="box">BEST<span id="best">0</span></div>
+</div>
+<div id="board"></div>
+<button class="btn" onclick="init()">NEW GAME</button>
+<div class="info">ARROW KEYS TO MERGE TILES &nbsp;|&nbsp; REACH 2048</div>
+
+<script>
+let grid,score,best=0;
+function init(){
+  grid=Array.from({length:4},()=>Array(4).fill(0));
+  score=0;document.getElementById('score').textContent=0;
+  addTile();addTile();render();
+}
+function addTile(){
+  const empty=[];
+  grid.forEach((r,i)=>r.forEach((v,j)=>{if(!v)empty.push([i,j])}));
+  if(!empty.length)return;
+  const[r,c]=empty[Math.floor(Math.random()*empty.length)];
+  grid[r][c]=Math.random()<0.9?2:4;
+}
+function slide(row){
+  let r=row.filter(v=>v);
+  for(let i=0;i<r.length-1;i++){if(r[i]===r[i+1]){score+=r[i]*2;r[i]*=2;r.splice(i+1,1);}}
+  while(r.length<4)r.push(0);return r;
+}
+function move(dir){
+  let moved=false;
+  const g=grid.map(r=>[...r]);
+  if(dir==='left'){grid=grid.map(r=>{const s=slide(r);if(s.join()!==r.join())moved=true;return s});}
+  if(dir==='right'){grid=grid.map(r=>{const s=slide([...r].reverse()).reverse();if(s.join()!==r.join())moved=true;return s});}
+  if(dir==='up'){
+    for(let c=0;c<4;c++){let col=grid.map(r=>r[c]);const s=slide(col);s.forEach((v,r)=>{if(v!==grid[r][c])moved=true;grid[r][c]=v;});}
+  }
+  if(dir==='down'){
+    for(let c=0;c<4;c++){let col=grid.map(r=>r[c]).reverse();const s=slide(col).reverse();s.forEach((v,r)=>{if(v!==grid[r][c])moved=true;grid[r][c]=v;});}
+  }
+  if(moved){addTile();best=Math.max(best,score);document.getElementById('score').textContent=score;document.getElementById('best').textContent=best;render();}
+}
+function render(){
+  const board=document.getElementById('board');board.innerHTML='';
+  grid.forEach(row=>row.forEach(v=>{
+    const t=document.createElement('div');t.className='tile tile-'+Math.min(v,2048);
+    t.textContent=v||'';board.appendChild(t);
+  }));
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft')move('left');
+  else if(e.key==='ArrowRight')move('right');
+  else if(e.key==='ArrowUp')move('up');
+  else if(e.key==='ArrowDown')move('down');
+  else return;e.preventDefault();
+});
+let touchX,touchY;
+document.addEventListener('touchstart',e=>{touchX=e.touches[0].clientX;touchY=e.touches[0].clientY;});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-touchX,dy=e.changedTouches[0].clientY-touchY;
+  if(Math.abs(dx)>Math.abs(dy)){move(dx>0?'right':'left');}else{move(dy>0?'down':'up');}
+});
+init();
+</script>
+</body>
+</html>
