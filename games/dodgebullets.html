@@ -1,116 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Dodge — PlayForge</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dodge Bullets — PlayForge</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#020408;--border:#0f1e2e;--cyan:#00ffe7;--text:#c8d8e8;--text-dim:#4a6070;--font-display:'Orbitron',monospace;--font-body:'Rajdhani',sans-serif}
-body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
-.scanlines{pointer-events:none;position:fixed;inset:0;z-index:999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px)}
-header{width:100%;max-width:500px;display:flex;align-items:center;gap:20px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:30px}
-.back-btn{font-family:var(--font-display);font-size:0.65rem;letter-spacing:.15em;color:var(--cyan);text-decoration:none;border:1px solid var(--cyan);padding:8px 16px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
-.back-btn:hover{background:rgba(0,255,231,0.1)}
-.game-title{font-family:var(--font-display);font-size:1.4rem;font-weight:700;letter-spacing:.2em;color:#fff}
-canvas{display:block;border:1px solid var(--border);box-shadow:0 0 30px rgba(0,255,231,0.15)}
-.info{margin-top:16px;font-size:0.8rem;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0a0a0f;color:#fff;font-family:'Share Tech Mono',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,255,.015) 2px,rgba(0,255,255,.015) 4px);pointer-events:none;z-index:0;}
+  nav{width:100%;padding:16px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(0,255,255,.15);background:rgba(10,10,15,.9);position:relative;z-index:10;}
+  nav a{color:#0ff;text-decoration:none;font-size:.75rem;letter-spacing:.15em;opacity:.7;transition:.2s;}
+  nav a:hover{opacity:1;}
+  nav span{font-family:'Orbitron',monospace;font-size:.85rem;font-weight:700;color:#fff;letter-spacing:.2em;}
+  .hud{display:flex;gap:40px;padding:16px 0 8px;position:relative;z-index:5;}
+  .hud-item{text-align:center;}
+  .hud-label{font-size:.6rem;letter-spacing:.2em;color:rgba(255,255,255,.4);margin-bottom:4px;}
+  .hud-value{font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:700;color:#0ff;}
+  #arena{position:relative;z-index:5;border:1px solid rgba(0,255,255,.3);box-shadow:0 0 30px rgba(0,255,255,.1),inset 0 0 30px rgba(0,0,0,.5);background:#0a0a0f;cursor:none;}
+  #player{position:absolute;width:18px;height:18px;background:#0ff;box-shadow:0 0 15px #0ff,0 0 30px rgba(0,255,255,.5);transform:translate(-50%,-50%);border-radius:2px;transition:none;}
+  .bullet{position:absolute;background:#f0f;box-shadow:0 0 8px #f0f;transform:translate(-50%,-50%);border-radius:50%;}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,15,.85);z-index:20;gap:16px;}
+  .overlay h2{font-family:'Orbitron',monospace;font-size:2rem;font-weight:900;letter-spacing:.2em;color:#0ff;text-shadow:0 0 20px #0ff;}
+  .overlay p{font-size:.75rem;letter-spacing:.15em;color:rgba(255,255,255,.5);}
+  .overlay .score-big{font-family:'Orbitron',monospace;font-size:1.2rem;color:#fff;}
+  btn,.btn{background:transparent;border:1px solid #0ff;color:#0ff;font-family:'Share Tech Mono',monospace;font-size:.75rem;letter-spacing:.2em;padding:12px 32px;cursor:pointer;transition:.2s;margin-top:8px;}
+  .btn:hover{background:#0ff;color:#0a0a0f;}
+  .info{font-size:.65rem;letter-spacing:.12em;color:rgba(255,255,255,.3);padding:8px 0;position:relative;z-index:5;}
 </style>
 </head>
 <body>
-<div class="scanlines"></div>
-<header>
-  <a href="../../index.html" class="back-btn">← BACK</a>
-  <span class="game-title">DODGE</span>
-</header>
-<canvas id="c" width="500" height="500"></canvas>
-<div class="info">ARROW KEYS / WASD TO DODGE &nbsp;|&nbsp; SURVIVE AS LONG AS POSSIBLE</div>
+<nav><a href="../index.html">← BACK</a><span>DODGE BULLETS</span></nav>
+<div class="hud">
+  <div class="hud-item"><div class="hud-label">SCORE</div><div class="hud-value" id="score">0</div></div>
+  <div class="hud-item"><div class="hud-label">TIME</div><div class="hud-value" id="timer">0s</div></div>
+  <div class="hud-item"><div class="hud-label">LEVEL</div><div class="hud-value" id="level">1</div></div>
+</div>
+<canvas id="arena" width="520" height="480"></canvas>
+<div class="info">ARROW KEYS / WASD TO DODGE  |  SURVIVE AS LONG AS POSSIBLE</div>
 
 <script>
-const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
-const W=500,H=500,SPEED=3.5,PR=10;
-let player,bullets,time,best=0,spawnRate,state='idle',keys={},animId,lastSpawn;
+const canvas = document.getElementById('arena');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
 
-function init(){
-  player={x:W/2,y:H/2,r:PR};
-  bullets=[];time=0;spawnRate=1200;lastSpawn=0;state='playing';
-}
+let player = {x: W/2, y: H/2, r: 9, speed: 4};
+let bullets = [];
+let particles = [];
+let score = 0, elapsed = 0, level = 1;
+let running = false, gameOver = false;
+let lastTime = 0, bulletTimer = 0;
+let keys = {};
 
-function update(ts){
-  time+=16;
-  // move
-  let dx=0,dy=0;
-  if(keys['ArrowLeft']||keys['a'])dx-=SPEED;
-  if(keys['ArrowRight']||keys['d'])dx+=SPEED;
-  if(keys['ArrowUp']||keys['w'])dy-=SPEED;
-  if(keys['ArrowDown']||keys['s'])dy+=SPEED;
-  if(dx&&dy){dx*=0.707;dy*=0.707;}
-  player.x=Math.max(PR,Math.min(W-PR,player.x+dx));
-  player.y=Math.max(PR,Math.min(H-PR,player.y+dy));
-  // spawn
-  spawnRate=Math.max(300,1200-Math.floor(time/3000)*80);
-  if(ts-lastSpawn>spawnRate){lastSpawn=ts;spawnBullet();}
-  // bullets
-  bullets.forEach(b=>{b.x+=b.vx;b.y+=b.vy});
-  bullets=bullets.filter(b=>b.x>-30&&b.x<W+30&&b.y>-30&&b.y<H+30);
-  // collision
-  bullets.forEach(b=>{const dx=b.x-player.x,dy=b.y-player.y;if(Math.sqrt(dx*dx+dy*dy)<PR+b.r){die();}});
-}
-
-function spawnBullet(){
-  const side=Math.floor(Math.random()*4);
-  let x,y,tx,ty;
-  if(side===0){x=Math.random()*W;y=-20;tx=Math.random()*W;ty=H+20;}
-  else if(side===1){x=Math.random()*W;y=H+20;tx=Math.random()*W;ty=-20;}
-  else if(side===2){x=-20;y=Math.random()*H;tx=W+20;ty=Math.random()*H;}
-  else{x=W+20;y=Math.random()*H;tx=-20;ty=Math.random()*H;}
-  const len=Math.sqrt((tx-x)**2+(ty-y)**2);
-  const spd=2+Math.random()*3;
-  bullets.push({x,y,vx:(tx-x)/len*spd,vy:(ty-y)/len*spd,r:6,color:Math.random()>0.5?'#ff0044':'#ff6600'});
-}
-
-function die(){
-  state='dead';best=Math.max(best,Math.floor(time/1000));
-}
-
-function draw(){
-  ctx.fillStyle='#020408';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(0,255,231,0.04)';ctx.lineWidth=1;
-  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
-  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
-  bullets.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=b.color;ctx.shadowColor=b.color;ctx.shadowBlur=15;ctx.fill();ctx.shadowBlur=0;});
-  // player
-  ctx.beginPath();ctx.arc(player.x,player.y,PR,0,Math.PI*2);
-  ctx.fillStyle='#00ffe7';ctx.shadowColor='#00ffe7';ctx.shadowBlur=25;ctx.fill();ctx.shadowBlur=0;
-  // time
-  const secs=Math.floor(time/1000);
-  ctx.fillStyle='#fff';ctx.font='bold 24px Orbitron';ctx.textAlign='center';ctx.shadowColor='#fff';ctx.shadowBlur=10;
-  ctx.fillText(secs+'s',W/2,36);ctx.shadowBlur=0;
-  ctx.fillStyle='#4a6070';ctx.font='11px Orbitron';ctx.fillText('BEST: '+best+'s',W/2,55);
-  if(state==='idle'){
-    ctx.fillStyle='rgba(2,4,8,0.7)';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#00ffe7';ctx.shadowColor='#00ffe7';ctx.shadowBlur=20;
-    ctx.font='bold 28px Orbitron';ctx.textAlign='center';ctx.fillText('DODGE',W/2,H/2-20);ctx.shadowBlur=0;
-    ctx.fillStyle='#4a6070';ctx.font='13px Orbitron';ctx.fillText('PRESS ANY ARROW KEY TO START',W/2,H/2+20);
-  }
-  if(state==='dead'){
-    ctx.fillStyle='rgba(2,4,8,0.75)';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#ff0044';ctx.shadowColor='#ff0044';ctx.shadowBlur=20;
-    ctx.font='bold 28px Orbitron';ctx.textAlign='center';ctx.fillText('ELIMINATED',W/2,H/2-30);ctx.shadowBlur=0;
-    ctx.fillStyle='#c8d8e8';ctx.font='16px Orbitron';ctx.fillText('SURVIVED: '+Math.floor(time/1000)+'s',W/2,H/2+10);
-    ctx.fillStyle='#4a6070';ctx.font='12px Orbitron';ctx.fillText('PRESS ANY KEY TO RETRY',W/2,H/2+45);
-  }
-}
-
-function frame(ts){draw();if(state==='playing')update(ts);requestAnimationFrame(frame);}
-
-document.addEventListener('keydown',e=>{
-  keys[e.key]=true;
-  if(state==='idle'||state==='dead')init();
-  e.preventDefault();
+// input
+window.addEventListener('keydown', e => { keys[e.key] = true; if(!running && !gameOver) startGame(); });
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+canvas.addEventListener('mousemove', e => {
+  if(!running) return;
+  const r = canvas.getBoundingClientRect();
+  player.x = e.clientX - r.left;
+  player.y = e.clientY - r.top;
 });
-document.addEventListener('keyup',e=>{keys[e.key]=false;});
-requestAnimationFrame(frame);
+
+function spawnBullet() {
+  const side = Math.floor(Math.random()*4);
+  let x, y, vx, vy;
+  const spd = 2 + level*0.6 + Math.random()*1.5;
+  if(side===0){x=Math.random()*W;y=-10;vx=(Math.random()-.5)*2;vy=spd;}
+  else if(side===1){x=W+10;y=Math.random()*H;vx=-spd;vy=(Math.random()-.5)*2;}
+  else if(side===2){x=Math.random()*W;y=H+10;vx=(Math.random()-.5)*2;vy=-spd;}
+  else{x=-10;y=Math.random()*H;vx=spd;vy=(Math.random()-.5)*2;}
+  // aimed bullets at higher levels
+  if(level > 2 && Math.random() < 0.4) {
+    const ang = Math.atan2(player.y-y, player.x-x);
+    vx = Math.cos(ang)*spd; vy = Math.sin(ang)*spd;
+  }
+  const r = 4 + Math.random()*3;
+  bullets.push({x,y,vx,vy,r});
+}
+
+function spawnParticles(x, y) {
+  for(let i=0;i<20;i++) {
+    const ang = Math.random()*Math.PI*2;
+    const spd = 1+Math.random()*4;
+    particles.push({x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:1,r:2+Math.random()*3});
+  }
+}
+
+function startGame() {
+  player = {x:W/2,y:H/2,r:9,speed:4};
+  bullets=[]; particles=[]; score=0; elapsed=0; level=1;
+  bulletTimer=0; gameOver=false; running=true;
+  lastTime=performance.now();
+  requestAnimationFrame(loop);
+}
+
+function loop(ts) {
+  if(!running) return;
+  const dt = Math.min((ts - lastTime)/1000, 0.05);
+  lastTime = ts;
+  elapsed += dt;
+  score = Math.floor(elapsed*10);
+  level = Math.floor(elapsed/10)+1;
+  document.getElementById('score').textContent = score;
+  document.getElementById('timer').textContent = Math.floor(elapsed)+'s';
+  document.getElementById('level').textContent = level;
+
+  // move player with keys
+  const spd = player.speed;
+  if(keys['ArrowLeft']||keys['a']||keys['A']) player.x -= spd;
+  if(keys['ArrowRight']||keys['d']||keys['D']) player.x += spd;
+  if(keys['ArrowUp']||keys['w']||keys['W']) player.y -= spd;
+  if(keys['ArrowDown']||keys['s']||keys['S']) player.y += spd;
+  player.x = Math.max(player.r, Math.min(W-player.r, player.x));
+  player.y = Math.max(player.r, Math.min(H-player.r, player.y));
+
+  // spawn bullets
+  bulletTimer += dt;
+  const interval = Math.max(0.18, 0.5 - level*0.03);
+  if(bulletTimer > interval) { spawnBullet(); bulletTimer=0; }
+
+  // update bullets
+  bullets = bullets.filter(b => {
+    b.x += b.vx; b.y += b.vy;
+    return b.x > -30 && b.x < W+30 && b.y > -30 && b.y < H+30;
+  });
+
+  // particles
+  particles = particles.filter(p => {
+    p.x += p.vx; p.y += p.vy; p.life -= dt*2; p.vx*=0.95; p.vy*=0.95;
+    return p.life > 0;
+  });
+
+  // collision
+  for(const b of bullets) {
+    const dx=b.x-player.x, dy=b.y-player.y;
+    if(Math.sqrt(dx*dx+dy*dy) < b.r+player.r-2) {
+      spawnParticles(player.x, player.y);
+      running=false; gameOver=true;
+      draw(); showGameOver(); return;
+    }
+  }
+
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle='rgba(0,255,255,0.04)';
+  ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = '#0ff';
+    ctx.shadowBlur = 6; ctx.shadowColor='#0ff';
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1; ctx.shadowBlur=0;
+
+  // bullets
+  bullets.forEach(b => {
+    ctx.shadowBlur=12; ctx.shadowColor='#f0f';
+    ctx.fillStyle='#f0f';
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+  });
+
+  if(!gameOver) {
+    // player
+    ctx.shadowBlur=20; ctx.shadowColor='#0ff';
+    ctx.fillStyle='#0ff';
+    ctx.beginPath();
+    ctx.rect(player.x-player.r, player.y-player.r, player.r*2, player.r*2);
+    ctx.fill();
+    ctx.shadowBlur=0;
+  }
+
+  if(!running && !gameOver) {
+    // start screen
+    ctx.fillStyle='rgba(10,10,15,0.7)';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#0ff';
+    ctx.font='bold 28px Orbitron';
+    ctx.textAlign='center';
+    ctx.shadowBlur=20; ctx.shadowColor='#0ff';
+    ctx.fillText('DODGE BULLETS', W/2, H/2-40);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.font='12px Share Tech Mono';
+    ctx.fillText('PRESS ANY KEY OR MOVE MOUSE TO START', W/2, H/2+10);
+    ctx.fillText('USE ARROW KEYS / WASD OR MOUSE TO DODGE', W/2, H/2+35);
+  }
+}
+
+function showGameOver() {
+  ctx.fillStyle='rgba(10,10,15,0.85)';
+  ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';
+  ctx.fillStyle='#f0f';
+  ctx.font='bold 36px Orbitron';
+  ctx.shadowBlur=20; ctx.shadowColor='#f0f';
+  ctx.fillText('GAME OVER', W/2, H/2-60);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#fff';
+  ctx.font='14px Share Tech Mono';
+  ctx.fillText('SCORE: '+score+'  |  TIME: '+Math.floor(elapsed)+'s  |  LEVEL: '+level, W/2, H/2-10);
+  ctx.fillStyle='rgba(255,255,255,0.4)';
+  ctx.font='11px Share Tech Mono';
+  ctx.fillText('PRESS ANY KEY TO PLAY AGAIN', W/2, H/2+30);
+  window.addEventListener('keydown', ()=>{ if(gameOver) startGame(); }, {once:true});
+  canvas.addEventListener('click', ()=>{ if(gameOver) startGame(); }, {once:true});
+}
+
+draw(); // show start screen
 </script>
 </body>
 </html>
